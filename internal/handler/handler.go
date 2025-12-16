@@ -3,23 +3,27 @@ package handler
 import (
 	"bedis/internal/storage"
 	"fmt"
+	"log/slog"
 	"strings"
 )
 
 type Handler struct {
 	storage *storage.Storage
+	logger  *slog.Logger
 }
 
-func New(storage *storage.Storage) *Handler {
+func New(storage *storage.Storage, logger *slog.Logger) *Handler {
 	return &Handler{
 		storage: storage,
+		logger:  logger,
 	}
 }
 
 func (h *Handler) Process(line string) (string, error) {
+	op := "handler.Process"
 	parts := strings.Fields(line)
 	command := strings.ToUpper(parts[0])
-	fmt.Println("command:", command)
+	h.logger.Info(op, "command:", command)
 	switch command {
 	case "SET":
 		if len(parts) != 3 {

@@ -4,14 +4,16 @@ import (
 	"bedis/internal/handler"
 	"bedis/internal/server"
 	"bedis/internal/storage"
-	"log"
+	logger2 "bedis/pkg/logger"
 )
 
 func main() {
-	s := storage.New()
-	h := handler.New(s)
-	srv := server.New(":6380", h)
+	logger := logger2.InitLogger("bedis", "info", "./logs")
+	logger2.GetLogger()
+	s := storage.New(logger)
+	h := handler.New(s, logger)
+	srv := server.New(":6380", h, logger)
 	if err := srv.Start(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }
