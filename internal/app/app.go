@@ -22,9 +22,6 @@ func New(serverCfg config.Server, loggerCfg config.Logger) *App {
 	h := handler.New(s, log)
 	srv := server.New(serverCfg.Address+":"+serverCfg.Port, h, log)
 
-	if err := srv.Start(); err != nil {
-		panic(err)
-	}
 	return &App{
 		Logger:  log,
 		Server:  srv,
