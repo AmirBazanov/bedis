@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bedis/internal/storage"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -29,6 +30,9 @@ func New(storage *storage.Storage, logger *slog.Logger) *Handler {
 func (h *Handler) Process(line string) (string, error) {
 	op := "handler.Process"
 	parts := strings.Fields(line)
+	if len(parts) < 1 {
+		return "", errors.New("invalid line")
+	}
 	command := strings.ToUpper(parts[0])
 	h.logger.Info(op, "command:", command)
 	switch command {
