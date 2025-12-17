@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bedis/internal/sender"
+	"bedis/internal/app"
+	"bedis/internal/config"
 )
 
 func main() {
-
-	send := sender.New(":6380")
-	send.Send("SET KEY VALUE\n")
+	cfg := config.MustLoad()
+	bedis := app.New(cfg.Server, cfg.Logger)
+	defer bedis.Server.Stop()
 }
