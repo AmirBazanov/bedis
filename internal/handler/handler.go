@@ -3,6 +3,7 @@ package handler
 import (
 	"bedis/internal/storage"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
 )
@@ -13,6 +14,12 @@ type Handler struct {
 }
 
 func New(storage *storage.Storage, logger *slog.Logger) *Handler {
+
+	if logger == nil {
+		logger = slog.New(
+			slog.NewTextHandler(io.Discard, nil),
+		)
+	}
 	return &Handler{
 		storage: storage,
 		logger:  logger,

@@ -5,6 +5,7 @@ package storage
 
 import (
 	"errors"
+	"io"
 	"log/slog"
 	"sync"
 )
@@ -16,6 +17,12 @@ type Storage struct {
 }
 
 func New(logger *slog.Logger) *Storage {
+	if logger == nil {
+		logger = slog.New(
+			slog.NewTextHandler(io.Discard, nil),
+		)
+	}
+
 	return &Storage{
 		data:   make(map[string][]byte),
 		logger: logger,

@@ -9,7 +9,7 @@ import (
 )
 
 func TestSetAndGet(t *testing.T) {
-	s := storage.New()
+	s := storage.New(nil)
 	err := s.Set("test", []byte("test"))
 	if err != nil {
 		t.Fatalf("unexpeted error in Set: %s", err)
@@ -25,7 +25,7 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestGetUnknown(t *testing.T) {
-	s := storage.New()
+	s := storage.New(nil)
 	val, err := s.Get("=-=-=-")
 	if err == nil {
 		t.Fatalf("unexpeted error in Get: %s", val)
@@ -36,7 +36,7 @@ func TestGetUnknown(t *testing.T) {
 }
 
 func TestGetReturnsCopy(t *testing.T) {
-	s := storage.New()
+	s := storage.New(nil)
 	original := []byte("original")
 	err := s.Set("original", original)
 	if err != nil {
@@ -55,7 +55,7 @@ func TestGetReturnsCopy(t *testing.T) {
 }
 
 func TestConcurrency(t *testing.T) {
-	s := storage.New()
+	s := storage.New(nil)
 
 	var wg sync.WaitGroup
 	wg.Add(1000)
