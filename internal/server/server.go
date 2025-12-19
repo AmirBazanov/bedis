@@ -20,22 +20,23 @@ type Server struct {
 }
 
 func New(address string, handler *handler.Handler, logger *slog.Logger) *Server {
-	op := "server.New"
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	quit := make(chan interface{})
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Fatal(err)
-	}
-	logger.Info(op, "Listening on ", address)
-	return &Server{address: address, handler: handler, logger: logger, listener: listener, quit: quit}
+
+	return &Server{address: address, handler: handler, logger: logger, quit: quit}
 
 }
 
 func (s *Server) Start() error {
 	op := "server.Start"
+	var err error
+	s.listener, err = net.Listen("tcp", s.address)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.logger.Info(op, "Listening on ", s.address)
 	for {
 		listener, err := s.listener.Accept()
 		if err != nil {
@@ -80,6 +81,10 @@ func (s *Server) handleConn(conn net.Conn) {
 
 		} else {
 			s.logger.Info(op, conn.RemoteAddr().String(), resp)
+			_, err := conn.Write([]byte(resp))
+			if err != nil {
+				s.logger.Error(op, "unable to write in conn", err)
+			}
 		}
 	}
 }
