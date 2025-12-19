@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bedis/internal/storage"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,6 +19,7 @@ func New(storage *storage.Storage, logger *slog.Logger) *Handler {
 		logger = slog.New(
 			slog.NewTextHandler(io.Discard, nil),
 		)
+		//TODO: Info when no logger provided
 	}
 	return &Handler{
 		storage: storage,
@@ -31,7 +31,7 @@ func (h *Handler) Process(line string) (string, error) {
 	op := "handler.Process"
 	parts := strings.Fields(line)
 	if len(parts) < 1 {
-		return "", errors.New("invalid line")
+		return "", fmt.Errorf("invalid line")
 	}
 	command := strings.ToUpper(parts[0])
 	h.logger.Info(op, "command:", command)
@@ -46,7 +46,7 @@ func (h *Handler) Process(line string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "OK", nil
+		return "OK\n", nil
 	case "GET":
 		if len(parts) != 2 {
 			return "", fmt.Errorf("wrong number of arguments: %s", line)
@@ -56,7 +56,7 @@ func (h *Handler) Process(line string) (string, error) {
 		if err != nil || value == nil {
 			return "", err
 		}
-		return string(value), nil
+		return string(value) + "\n", nil
 	default:
 		return "", fmt.Errorf("unknown command: %s", command)
 
