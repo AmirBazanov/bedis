@@ -48,7 +48,7 @@ func request(t *testing.T, command string, conn net.Conn) (string, error) {
 	resp, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		t.Logf("read failed: %v", err)
-		return "", nil
+		return "", err
 	}
 	return resp, nil
 
