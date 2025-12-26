@@ -10,6 +10,7 @@ import (
 	"sync"
 )
 
+// TODO: Errors
 type Storage struct {
 	data   map[string][]byte
 	mutex  sync.RWMutex

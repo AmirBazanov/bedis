@@ -3,6 +3,7 @@ package server
 import (
 	"bedis/internal/handler"
 	"bufio"
+	"errors"
 	"io"
 	"log"
 	"log/slog"
@@ -18,6 +19,12 @@ type Server struct {
 	wg       sync.WaitGroup
 	quit     chan interface{}
 }
+
+var (
+	ErrUnknownCommand = errors.New("unknown command")
+	ErrWrongArgs      = errors.New("wrong number of arguments")
+	ErrKeyNotFound    = errors.New("key not found")
+)
 
 func New(address string, handler *handler.Handler, logger *slog.Logger) *Server {
 	if logger == nil {

@@ -2,10 +2,17 @@ package handler
 
 import (
 	"bedis/internal/storage"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"strings"
+)
+
+var (
+	ErrUnknownCommand = errors.New("unknown command")
+	ErrWrongArgs      = errors.New("wrong number of arguments")
+	ErrKeyNotFound    = errors.New("key not found")
 )
 
 type Handler struct {
@@ -38,7 +45,7 @@ func (h *Handler) Process(line string) (string, error) {
 	switch command {
 	case "SET":
 		if len(parts) != 3 {
-			return "", fmt.Errorf("wrong number of arguments: %s", line)
+			return "", ErrWrongArgs
 		}
 		key := parts[1]
 		value := []byte(parts[2])
@@ -49,7 +56,7 @@ func (h *Handler) Process(line string) (string, error) {
 		return "OK\n", nil
 	case "GET":
 		if len(parts) != 2 {
-			return "", fmt.Errorf("wrong number of arguments: %s", line)
+			return "", ErrWrongArgs
 		}
 		key := parts[1]
 		value, err := h.storage.Get(key)
@@ -58,7 +65,7 @@ func (h *Handler) Process(line string) (string, error) {
 		}
 		return string(value) + "\n", nil
 	default:
-		return "", fmt.Errorf("unknown command: %s", command)
+		return "", ErrUnknownCommand
 
 	}
 
