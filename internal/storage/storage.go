@@ -10,7 +10,10 @@ import (
 	"sync"
 )
 
-// TODO: Errors
+var (
+	ErrNoSuchData = errors.New("no such data")
+)
+
 type Storage struct {
 	data   map[string][]byte
 	mutex  sync.RWMutex
@@ -48,7 +51,7 @@ func (s *Storage) Get(key string) ([]byte, error) {
 	item, ok := s.data[key]
 	s.logger.Info(op, "Getting data", slog.String("key", key))
 	if !ok {
-		return nil, errors.New("NO SUCH DATA")
+		return nil, ErrNoSuchData
 	}
 	data := make([]byte, len(item))
 	copy(data, item)
