@@ -2,8 +2,8 @@ package resp
 
 type Value struct {
 	Type    Type
-	Integer int
+	Integer int64
 	Bytes   []byte
-	Array   []Value
+	Array   []*Value
 	IsNil   bool
 }
