@@ -60,6 +60,9 @@ func (r *Reader) ReadValue() (*Value, error) {
 		r.logger.Info(op, slog.Int("reading data with size", size))
 		r.logger.Info(op, slog.String("info", "RESP: Array"))
 		return r.readArray(size)
+	case byte(Integer):
+		r.logger.Info(op, slog.String("info", "RESP: Integer"))
+		return r.readInteger(v)
 	default:
 		return nil, ErrUnknownType
 	}
@@ -84,10 +87,21 @@ func (r *Reader) readBulk(size int) (*Value, error) {
 		return nil, err
 	}
 	if crlf != "\r\n" {
+		r.logger.Error(op, slog.String("error", "ending not crlf"))
 		return nil, ErrInvalidCrlf
 	}
 	return &Value{Type: BulkString, Bytes: buf}, nil
 
+}
+func (r *Reader) readInteger(line string) (*Value, error) {
+	op := "reader.readInteger"
+	var intVal int
+	intVal, err := strconv.Atoi(line[1 : len(line)-2])
+	if err != nil {
+		r.logger.Error(op, slog.String("error", err.Error()))
+		return nil, err
+	}
+	return &Value{Integer: int64(intVal)}, nil
 }
 
 func (r *Reader) readArray(size int) (*Value, error) {
