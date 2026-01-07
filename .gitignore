@@ -1,3 +1,4 @@
 .idea
 .idea/*
 logs/bedis.log
+.vscode/settings.json
