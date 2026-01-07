@@ -16,6 +16,9 @@ func TestReaderBulkString(t *testing.T) {
 	if string(value.Bytes) != "ASD" {
 		t.Fatalf("strings don't match: %s", value.Bytes)
 	}
+	if value.Type != BulkString {
+		t.Fatalf("wrong type: %b", value.Type)
+	}
 }
 func TestReaderArrayOfBulk(t *testing.T) {
 	respCmd := "*3\r\n$3\r\nSET\r\n$1\r\nA\r\n$1\r\nB\r\n"
@@ -51,5 +54,24 @@ func TestReaderInteger(t *testing.T) {
 	if value.Integer != -100 {
 		t.Fatalf("data don't match: %d", value.Integer)
 	}
+	if value.Type != Integer {
+		t.Fatalf("wrong type: %b", value.Type)
+	}
 
+}
+
+func TestReaderSimpleString(t *testing.T) {
+	respCmd := "+OK\r\n"
+	buf := bytes.NewBufferString(respCmd)
+	reader := New(buf, nil)
+	value, err := reader.ReadValue()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if string(value.Bytes) != "OK" {
+		t.Fatalf("data don't match: %s", value.Bytes)
+	}
+	if value.Type != SimpleString {
+		t.Fatalf("wrong type: %b", value.Type)
+	}
 }
