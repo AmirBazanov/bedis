@@ -16,6 +16,8 @@ var (
 	ErrInvalidCrlf = errors.New("invalid crlf")
 )
 
+const MAXSIZE = 512 * 1024 * 1024
+
 type Reader struct {
 	logger *slog.Logger
 	reader *bufio.Reader
@@ -66,6 +68,9 @@ func (r *Reader) ReadValue() (*Value, error) {
 	case byte(SimpleString):
 		r.logger.Info(op, slog.String("info", "RESP: SimpleString"))
 		return r.readSimpleString(v)
+	case byte(SimpleError):
+		r.logger.Info(op, slog.String("info", "RESP: SimpleError"))
+		return r.readSimpleError(v)
 	default:
 		return nil, ErrUnknownType
 	}
@@ -84,7 +89,6 @@ func (r *Reader) readBulkString(size int) (*Value, error) {
 		return nil, err
 	}
 	crlf, err := r.reader.ReadString('\n')
-
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return nil, err
@@ -94,8 +98,8 @@ func (r *Reader) readBulkString(size int) (*Value, error) {
 		return nil, ErrInvalidCrlf
 	}
 	return &Value{Type: BulkString, Bytes: buf}, nil
-
 }
+
 func (r *Reader) readInteger(data string) (*Value, error) {
 	op := "reader.readInteger"
 	if len(data) < 3 {
@@ -148,8 +152,17 @@ func (r *Reader) readSimpleString(data string) (*Value, error) {
 	return &Value{Type: SimpleString, Bytes: []byte(data[1 : len(data)-2])}, nil
 }
 
-//TODO: Add other types
+func (r *Reader) readSimpleError(data string) (*Value, error) {
+	op := "reader.readSimpleError"
+	simpleStringValue, err := r.readSimpleString(data)
+	if err != nil {
+		r.logger.Error(op, slog.Any("error", err))
+		return nil, err
+	}
+	return &Value{Type: SimpleError, Bytes: simpleStringValue.Bytes}, nil
+}
 
+// TODO: Add other types
 func (r *Reader) parseSize(sb string) (int, error) {
 	op := "reader.parseSize"
 	if len(sb) < 3 || !strings.HasSuffix(sb, "\r\n") {
@@ -159,6 +172,16 @@ func (r *Reader) parseSize(sb string) (int, error) {
 	size, err := strconv.Atoi(string(sb[1 : len(sb)-2]))
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
+		return 0, ErrInvalidSize
+	}
+	if size > MAXSIZE {
+
+		r.logger.Error(op, slog.String("error", "size overflow"))
+		return 0, ErrInvalidSize
+	}
+	if size < 0 {
+
+		r.logger.Error(op, slog.String("error", "size is negative"))
 		return 0, ErrInvalidSize
 	}
 	return size, nil
