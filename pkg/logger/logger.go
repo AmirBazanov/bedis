@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -80,6 +81,7 @@ func (c *CustomHandler) Handle(_ context.Context, record slog.Record) error {
 	_, err := fmt.Fprintf(c.Writer, "%s [%s] [%s] %s %s\n", timestamp, level, c.Service, message, extra)
 	return err
 }
+
 func (c *CustomHandler) WithAttrs([]slog.Attr) slog.Handler {
 	return c
 }
@@ -97,7 +99,7 @@ func createHandler(level slog.Level, service string, logFile string) slog.Handle
 	if err != nil {
 		panic("could not open log folder: " + err.Error())
 	}
-	file, errF := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, errF := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if errF != nil {
 		panic("could not open log file: " + errF.Error())
 	}
@@ -114,6 +116,17 @@ func createHandler(level slog.Level, service string, logFile string) slog.Handle
 func GetLogger() *slog.Logger {
 	if logger == nil {
 		panic("Logger is not initialized. Call InitLogger first.")
+	}
+	return logger
+}
+
+func LoggerNotInitialized(logger *slog.Logger) *slog.Logger {
+	op := "logger.LoggerInitialized"
+	if logger == nil {
+		logger = slog.New(
+			slog.NewTextHandler(io.Discard, nil),
+		)
+		log.Print(op + " no logger provided")
 	}
 	return logger
 }
