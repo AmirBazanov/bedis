@@ -9,7 +9,7 @@ import (
 func TestReaderBulkString(t *testing.T) {
 	respCmd := "$3\r\nASD\r\n"
 	buf := bytes.NewBufferString(respCmd)
-	reader := New(buf, nil)
+	reader := NewReader(buf, nil)
 	value, err := reader.ReadValue()
 	if err != nil {
 		t.Fatalf("error: %s", err)
@@ -25,7 +25,7 @@ func TestReaderBulkString(t *testing.T) {
 func TestReaderArrayOfBulk(t *testing.T) {
 	respCmd := "*3\r\n$3\r\nSET\r\n$1\r\nA\r\n$1\r\nB\r\n"
 	buf := bytes.NewBufferString(respCmd)
-	reader := New(buf, nil)
+	reader := NewReader(buf, nil)
 	value, err := reader.ReadValue()
 	if err != nil {
 		t.Fatalf("error: %s", err)
@@ -48,7 +48,7 @@ func TestReaderArrayOfBulk(t *testing.T) {
 func TestReaderInteger(t *testing.T) {
 	respCmd := ":-100\r\n"
 	buf := bytes.NewBufferString(respCmd)
-	reader := New(buf, nil)
+	reader := NewReader(buf, nil)
 	value, err := reader.ReadValue()
 	if err != nil {
 		t.Fatalf("error: %s", err)
@@ -64,7 +64,7 @@ func TestReaderInteger(t *testing.T) {
 func TestReaderSimpleString(t *testing.T) {
 	respCmd := "+OK\r\n"
 	buf := bytes.NewBufferString(respCmd)
-	reader := New(buf, nil)
+	reader := NewReader(buf, nil)
 	value, err := reader.ReadValue()
 	if err != nil {
 		t.Fatalf("error: %s", err)
@@ -80,7 +80,7 @@ func TestReaderSimpleString(t *testing.T) {
 func TestReaderSimpleError(t *testing.T) {
 	respCmd := "-Error\r\n"
 	buf := bytes.NewBufferString(respCmd)
-	reader := New(buf, nil)
+	reader := NewReader(buf, nil)
 	value, err := reader.ReadValue()
 	if err != nil {
 		t.Fatalf("error: %s", err)
@@ -101,7 +101,7 @@ func FuzzReadValue(f *testing.F) {
 	f.Add("*2\r\n+OK\r\n:1\r\n")
 
 	f.Fuzz(func(t *testing.T, input string) {
-		r := New(strings.NewReader(input), nil)
+		r := NewReader(strings.NewReader(input), nil)
 		_, _ = r.ReadValue()
 	})
 }

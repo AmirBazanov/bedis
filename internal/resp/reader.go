@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	l "bedis/pkg/logger"
 )
 
 var (
@@ -23,14 +24,8 @@ type Reader struct {
 	reader *bufio.Reader
 }
 
-func New(reader io.Reader, logger *slog.Logger) *Reader {
-	op := "reader.New"
-	if logger == nil {
-		logger = slog.New(
-			slog.NewTextHandler(io.Discard, nil),
-		)
-		log.Print(op + " no logger provided")
-	}
+func NewReader(reader io.Reader, logger *slog.Logger) *Reader {
+	logger = l.LoggerNotInitialized(logger)
 	return &Reader{
 		logger: logger,
 		reader: bufio.NewReader(reader),
@@ -127,7 +122,7 @@ func (r *Reader) readArray(size int) (*Value, error) {
 	}
 
 	values := make([]*Value, 0, size)
-	for i := 0; i < size; i++ {
+	for range size {
 		val, err := r.ReadValue()
 		if err != nil {
 			r.logger.Error(op, slog.String("error", err.Error()))
