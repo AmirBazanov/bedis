@@ -2,3 +2,6 @@
 .idea/*
 logs/bedis.log
 .vscode/settings.json
+internal/resp/testdata
+logs
+
