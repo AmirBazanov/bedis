@@ -121,6 +121,7 @@ func GetLogger() *slog.Logger {
 }
 
 func LoggerNotInitialized(logger *slog.Logger) *slog.Logger {
+	// TODO: Add flag for silence tests
 	op := "logger.LoggerInitialized"
 	if logger == nil {
 		logger = slog.New(
