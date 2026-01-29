@@ -1,0 +1,8 @@
+env: local
+logger:
+  level: info
+  service: bedis
+  logfile: ./logs/bedis.log
+server:
+  port: 6380
+  address: localhost
