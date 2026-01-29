@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strconv"
 
 	l "bedis/pkg/logger"
 )
@@ -13,6 +14,7 @@ import (
 var (
 	ErrToWrite  = errors.New("unable to write in writer")
 	ErrNilValue = errors.New("value is undefined")
+	CRLF        = []byte{'\r', '\n'}
 )
 
 type Writer struct {
@@ -28,7 +30,7 @@ func NewWriter(writer io.Writer, logger *slog.Logger) *Writer {
 	}
 }
 
-func (w *Writer) WriteValue(value *Value) error {
+func (w *Writer) Value(value *Value) error {
 	op := "writer.WriterValue"
 	if value == nil {
 		w.logger.Error(op, slog.Any("ERROR:", ErrNilValue))
@@ -36,22 +38,20 @@ func (w *Writer) WriteValue(value *Value) error {
 	}
 	switch value.Type {
 	case SimpleString:
-		return w.writeSimpleString(value)
+		return w.simpleString(value)
+	case Integer:
+		return w.integer(value)
 	default:
 		return ErrUnknownType
 	}
 }
 
-// func (w *Writer) writeSimpleError(data *Value) {
-// 	op := "writer.writeSimpleError"
-// }
-
-func (w *Writer) writeSimpleString(data *Value) error {
+func (w *Writer) simpleString(data *Value) error {
 	op := "writer.SimpleString"
 	var buf bytes.Buffer
 	buf.WriteByte(byte(data.Type))
 	buf.Write(data.Bytes)
-	buf.Write([]byte{'\r', '\n'})
+	buf.Write(CRLF)
 	b, err := w.writer.Write(buf.Bytes())
 	if err != nil {
 		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
@@ -59,5 +59,22 @@ func (w *Writer) writeSimpleString(data *Value) error {
 	}
 
 	w.logger.Info(op, slog.Int("SimpleString write size:", b))
+	return nil
+}
+
+func (w *Writer) integer(data *Value) error {
+	op := "writer.Integer"
+	var buf bytes.Buffer
+	buf.WriteByte(byte(data.Type))
+	buf.WriteString(strconv.Itoa(int(data.Integer)))
+	buf.Write(CRLF)
+	b, err := w.writer.Write(buf.Bytes())
+	if err != nil {
+
+		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
+		return err
+	}
+
+	w.logger.Info(op, slog.Int("Integer write size:", b))
 	return nil
 }
