@@ -8,5 +8,5 @@ const (
 	BulkString   Type = '$'
 	Integer      Type = ':'
 	Array        Type = '*'
-	//TODO: Other Types
+	// TODO: Other Types
 )
