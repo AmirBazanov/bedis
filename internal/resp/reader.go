@@ -48,7 +48,7 @@ func (r *Reader) Value() (*Value, error) {
 		}
 		r.logger.Info(op, slog.Int("reading data with size", size))
 		r.logger.Info(op, slog.String("info", "RESP: BulkString"))
-		return r.BulkString(size)
+		return r.bulkString(size)
 	case Array:
 		size, err := r.parseSize(v)
 		if err != nil {
@@ -56,22 +56,22 @@ func (r *Reader) Value() (*Value, error) {
 		}
 		r.logger.Info(op, slog.Int("reading data with size", size))
 		r.logger.Info(op, slog.String("info", "RESP: Array"))
-		return r.Array(size)
+		return r.array(size)
 	case Integer:
 		r.logger.Info(op, slog.String("info", "RESP: Integer"))
-		return r.Integer(v)
+		return r.integer(v)
 	case SimpleString:
 		r.logger.Info(op, slog.String("info", "RESP: SimpleString"))
-		return r.SimpleString(v)
+		return r.simpleString(v)
 	case SimpleError:
 		r.logger.Info(op, slog.String("info", "RESP: SimpleError"))
-		return r.SimpleError(v)
+		return r.simpleError(v)
 	default:
 		return nil, ErrUnknownType
 	}
 }
 
-func (r *Reader) BulkString(size int) (*Value, error) {
+func (r *Reader) bulkString(size int) (*Value, error) {
 	op := "reader.BulkString"
 	if size == -1 {
 		r.logger.Warn(op, slog.String("info", " size of string is -1"))
@@ -98,7 +98,7 @@ func (r *Reader) BulkString(size int) (*Value, error) {
 	return &Value{Type: BulkString, Bytes: buf}, nil
 }
 
-func (r *Reader) Integer(data string) (*Value, error) {
+func (r *Reader) integer(data string) (*Value, error) {
 	op := "reader.Integer"
 	if len(data) < 3 {
 		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
@@ -117,7 +117,7 @@ func (r *Reader) Integer(data string) (*Value, error) {
 	return &Value{Type: Integer, Integer: intVal}, nil
 }
 
-func (r *Reader) Array(size int) (*Value, error) {
+func (r *Reader) array(size int) (*Value, error) {
 	op := "reader.Array"
 	if size == -1 {
 		r.logger.Error(op, slog.String("info", "arrays size is -1"))
@@ -137,7 +137,7 @@ func (r *Reader) Array(size int) (*Value, error) {
 	return &Value{Type: Array, Array: values}, nil
 }
 
-func (r *Reader) SimpleString(data string) (*Value, error) {
+func (r *Reader) simpleString(data string) (*Value, error) {
 	op := "reader.SimpleString"
 	if len(data) < 3 {
 		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
@@ -150,9 +150,9 @@ func (r *Reader) SimpleString(data string) (*Value, error) {
 	return &Value{Type: SimpleString, Bytes: []byte(data[1 : len(data)-2])}, nil
 }
 
-func (r *Reader) SimpleError(data string) (*Value, error) {
+func (r *Reader) simpleError(data string) (*Value, error) {
 	op := "reader.SimpleError"
-	simpleStringValue, err := r.SimpleString(data)
+	simpleStringValue, err := r.simpleString(data)
 	if err != nil {
 		r.logger.Error(op, slog.Any("error", err))
 		return nil, err
