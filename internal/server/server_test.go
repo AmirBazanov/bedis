@@ -1,14 +1,16 @@
 package server
 
 import (
-	"bedis/internal/handler"
-	"bedis/internal/storage"
 	"bufio"
-	"github.com/brianvoe/gofakeit/v7"
 	"net"
 	"strings"
 	"testing"
 	"time"
+
+	"bedis/internal/handler"
+	"bedis/internal/storage"
+
+	"github.com/brianvoe/gofakeit/v7"
 )
 
 type Client struct {
@@ -28,7 +30,7 @@ func startTestServer(t *testing.T) (server *Server, addr string) {
 			return
 		}
 	}()
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		if server.listener != nil {
 			break
 		}
@@ -56,7 +58,6 @@ func request(t *testing.T, command string, client *Client) (string, error) {
 		return "", err
 	}
 	return resp, nil
-
 }
 
 func TestServerSingleCommand(t *testing.T) {
@@ -123,7 +124,6 @@ func TestServerManyCommandsPerConnection(t *testing.T) {
 			t.Fatalf("SET and GET values dont match: %v, %s", res, value)
 		}
 	}
-
 }
 
 func TestUnknownCommand(t *testing.T) {
@@ -131,7 +131,6 @@ func TestUnknownCommand(t *testing.T) {
 	defer server.Stop()
 
 	conn, err := net.Dial("tcp", addr)
-
 	if err != nil {
 		t.Fatalf("dial failed: %s", err)
 	}
@@ -154,5 +153,4 @@ func TestUnknownCommand(t *testing.T) {
 	if strings.TrimSpace(resp) != "unknown command" {
 		t.Fatalf("unknown command wrong response: %s", resp)
 	}
-
 }
