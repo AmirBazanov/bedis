@@ -32,7 +32,7 @@ func NewReader(reader io.Reader, logger *slog.Logger) *Reader {
 	}
 }
 
-func (r *Reader) ReadValue() (*Value, error) {
+func (r *Reader) Value() (*Value, error) {
 	op := "reader.ReadValue"
 	v, err := r.reader.ReadString('\n')
 	if err != nil {
@@ -40,42 +40,46 @@ func (r *Reader) ReadValue() (*Value, error) {
 		return nil, err
 	}
 
-	switch v[0] {
-	case byte(BulkString):
+	switch Type(v[0]) {
+	case BulkString:
 		size, err := r.parseSize(v)
 		if err != nil {
 			return nil, err
 		}
 		r.logger.Info(op, slog.Int("reading data with size", size))
 		r.logger.Info(op, slog.String("info", "RESP: BulkString"))
-		return r.readBulkString(size)
-	case byte(Array):
+		return r.BulkString(size)
+	case Array:
 		size, err := r.parseSize(v)
 		if err != nil {
 			return nil, err
 		}
 		r.logger.Info(op, slog.Int("reading data with size", size))
 		r.logger.Info(op, slog.String("info", "RESP: Array"))
-		return r.readArray(size)
-	case byte(Integer):
+		return r.Array(size)
+	case Integer:
 		r.logger.Info(op, slog.String("info", "RESP: Integer"))
-		return r.readInteger(v)
-	case byte(SimpleString):
+		return r.Integer(v)
+	case SimpleString:
 		r.logger.Info(op, slog.String("info", "RESP: SimpleString"))
-		return r.readSimpleString(v)
-	case byte(SimpleError):
+		return r.SimpleString(v)
+	case SimpleError:
 		r.logger.Info(op, slog.String("info", "RESP: SimpleError"))
-		return r.readSimpleError(v)
+		return r.SimpleError(v)
 	default:
 		return nil, ErrUnknownType
 	}
 }
 
-func (r *Reader) readBulkString(size int) (*Value, error) {
-	op := "reader.readBulkString"
+func (r *Reader) BulkString(size int) (*Value, error) {
+	op := "reader.BulkString"
 	if size == -1 {
 		r.logger.Warn(op, slog.String("info", " size of string is -1"))
-		return &Value{Type: BulkString}, nil
+		return &Value{Type: BulkString, Bytes: nil}, nil
+	}
+	if size < -1 {
+		r.logger.Error(op, slog.String("error", "size less then -1"))
+		return nil, ErrInvalidSize
 	}
 	buf := make([]byte, size)
 	_, err := io.ReadFull(r.reader, buf)
@@ -83,20 +87,19 @@ func (r *Reader) readBulkString(size int) (*Value, error) {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return nil, err
 	}
-	crlf, err := r.reader.ReadString('\n')
-	if err != nil {
-		r.logger.Error(op, slog.String("error", err.Error()))
-		return nil, err
+	var crlf [2]byte
+	if _, err := io.ReadFull(r.reader, crlf[:]); err != nil {
+		r.logger.Error(op, slog.Any("error read crlf", err))
 	}
-	if crlf != "\r\n" {
+	if crlf[0] != '\r' || crlf[1] != '\n' {
 		r.logger.Error(op, slog.String("error", "ending not crlf"))
 		return nil, ErrInvalidCrlf
 	}
 	return &Value{Type: BulkString, Bytes: buf}, nil
 }
 
-func (r *Reader) readInteger(data string) (*Value, error) {
-	op := "reader.readInteger"
+func (r *Reader) Integer(data string) (*Value, error) {
+	op := "reader.Integer"
 	if len(data) < 3 {
 		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
 		return nil, ErrInvalidSize
@@ -114,8 +117,8 @@ func (r *Reader) readInteger(data string) (*Value, error) {
 	return &Value{Type: Integer, Integer: intVal}, nil
 }
 
-func (r *Reader) readArray(size int) (*Value, error) {
-	op := "reader.readArray"
+func (r *Reader) Array(size int) (*Value, error) {
+	op := "reader.Array"
 	if size == -1 {
 		r.logger.Error(op, slog.String("info", "arrays size is -1"))
 		return &Value{Type: Array, IsNil: true}, nil
@@ -123,7 +126,7 @@ func (r *Reader) readArray(size int) (*Value, error) {
 
 	values := make([]*Value, 0, size)
 	for range size {
-		val, err := r.ReadValue()
+		val, err := r.Value()
 		if err != nil {
 			r.logger.Error(op, slog.String("error", err.Error()))
 			return nil, err
@@ -134,8 +137,8 @@ func (r *Reader) readArray(size int) (*Value, error) {
 	return &Value{Type: Array, Array: values}, nil
 }
 
-func (r *Reader) readSimpleString(data string) (*Value, error) {
-	op := "reader.readSimpleString"
+func (r *Reader) SimpleString(data string) (*Value, error) {
+	op := "reader.SimpleString"
 	if len(data) < 3 {
 		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
 		return nil, ErrInvalidSize
@@ -147,9 +150,9 @@ func (r *Reader) readSimpleString(data string) (*Value, error) {
 	return &Value{Type: SimpleString, Bytes: []byte(data[1 : len(data)-2])}, nil
 }
 
-func (r *Reader) readSimpleError(data string) (*Value, error) {
-	op := "reader.readSimpleError"
-	simpleStringValue, err := r.readSimpleString(data)
+func (r *Reader) SimpleError(data string) (*Value, error) {
+	op := "reader.SimpleError"
+	simpleStringValue, err := r.SimpleString(data)
 	if err != nil {
 		r.logger.Error(op, slog.Any("error", err))
 		return nil, err
