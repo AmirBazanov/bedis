@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
-func TestReaderBulkString(t *testing.T) {
+func TestReadBulkString(t *testing.T) {
 	respCmd := "$3\r\nASD\r\n"
 	buf := bytes.NewBufferString(respCmd)
 	reader := NewReader(buf, nil)
-	value, err := reader.ReadValue()
+	value, err := reader.Value()
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -22,11 +22,11 @@ func TestReaderBulkString(t *testing.T) {
 	}
 }
 
-func TestReaderArrayOfBulk(t *testing.T) {
+func TestReadArrayOfBulk(t *testing.T) {
 	respCmd := "*3\r\n$3\r\nSET\r\n$1\r\nA\r\n$1\r\nB\r\n"
 	buf := bytes.NewBufferString(respCmd)
 	reader := NewReader(buf, nil)
-	value, err := reader.ReadValue()
+	value, err := reader.Value()
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -45,11 +45,11 @@ func TestReaderArrayOfBulk(t *testing.T) {
 	}
 }
 
-func TestReaderInteger(t *testing.T) {
+func TestReadInteger(t *testing.T) {
 	respCmd := ":-100\r\n"
 	buf := bytes.NewBufferString(respCmd)
 	reader := NewReader(buf, nil)
-	value, err := reader.ReadValue()
+	value, err := reader.Value()
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -61,11 +61,11 @@ func TestReaderInteger(t *testing.T) {
 	}
 }
 
-func TestReaderSimpleString(t *testing.T) {
+func TestReadSimpleString(t *testing.T) {
 	respCmd := "+OK\r\n"
 	buf := bytes.NewBufferString(respCmd)
 	reader := NewReader(buf, nil)
-	value, err := reader.ReadValue()
+	value, err := reader.Value()
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -77,11 +77,11 @@ func TestReaderSimpleString(t *testing.T) {
 	}
 }
 
-func TestReaderSimpleError(t *testing.T) {
+func TestReadSimpleError(t *testing.T) {
 	respCmd := "-Error\r\n"
 	buf := bytes.NewBufferString(respCmd)
 	reader := NewReader(buf, nil)
-	value, err := reader.ReadValue()
+	value, err := reader.Value()
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -102,6 +102,6 @@ func FuzzReadValue(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, input string) {
 		r := NewReader(strings.NewReader(input), nil)
-		_, _ = r.ReadValue()
+		_, _ = r.Value()
 	})
 }
