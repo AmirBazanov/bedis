@@ -3,8 +3,16 @@ package resp
 import (
 	"bufio"
 	"bytes"
+	"os"
 	"testing"
+
+	"bedis/pkg/logger"
 )
+
+func TestMain(m *testing.M) {
+	logger.SupressNilLoggerWarn()
+	os.Exit(m.Run())
+}
 
 func testWrite(t *testing.T, v *Value, cmd string) {
 	var buf bytes.Buffer
