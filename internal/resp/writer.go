@@ -41,6 +41,8 @@ func (w *Writer) Value(value *Value) error {
 		return w.simpleString(value)
 	case Integer:
 		return w.integer(value)
+	case SimpleError:
+		return w.simpleError(value)
 	default:
 		return ErrUnknownType
 	}
@@ -53,13 +55,7 @@ func (w *Writer) simpleString(data *Value) error {
 	buf.Write(data.Bytes)
 	buf.Write(CRLF)
 	b, err := w.writer.Write(buf.Bytes())
-	if err != nil {
-		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
-		return err
-	}
-
-	w.logger.Info(op, slog.Int("SimpleString write size:", b))
-	return nil
+	return w.handleErrOnWrite(err, b, "simpleString", op)
 }
 
 func (w *Writer) integer(data *Value) error {
@@ -69,12 +65,26 @@ func (w *Writer) integer(data *Value) error {
 	buf.WriteString(strconv.Itoa(int(data.Integer)))
 	buf.Write(CRLF)
 	b, err := w.writer.Write(buf.Bytes())
+	return w.handleErrOnWrite(err, b, "interger", op)
+}
+
+func (w *Writer) simpleError(data *Value) error {
+	op := "writer.simpleError"
+	var buf bytes.Buffer
+	buf.WriteByte(byte(data.Type))
+	buf.Write(data.Bytes)
+	buf.Write(CRLF)
+	b, err := w.writer.Write(buf.Bytes())
+	return w.handleErrOnWrite(err, b, "simpleError", op)
+}
+
+func (w *Writer) handleErrOnWrite(err error, b int, typ string, op string) error {
 	if err != nil {
 
 		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
 		return err
 	}
 
-	w.logger.Info(op, slog.Int("Integer write size:", b))
+	w.logger.Info(op, slog.Int(typ+" write size:", b))
 	return nil
 }
