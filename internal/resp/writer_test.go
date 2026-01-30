@@ -28,10 +28,11 @@ func testWrite(t *testing.T, v *Value, cmd string) {
 	}
 
 	if cmd != buf.String() {
-		t.Fatalf("Read and Write dont match: %s != %s", cmd, buf.String())
+		t.Logf("%d-%d\n", len(cmd), len(buf.String()))
+		t.Fatalf("Read and Write dont match:\n %s !=\n %s", cmd, buf.String())
 	}
 
-	t.Logf("OK: %s == %s", cmd, buf.String())
+	t.Logf("OK:\n %s == \n %s", cmd, buf.String())
 }
 
 func TestWriteSimpleString(t *testing.T) {
