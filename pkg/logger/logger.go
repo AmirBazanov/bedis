@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -16,6 +15,12 @@ import (
 var (
 	once   sync.Once
 	logger *slog.Logger
+)
+
+var (
+	mu     sync.Mutex
+	warn   bool
+	silent bool
 )
 
 func InitLogger(service string, logLevel string, logFile string) *slog.Logger {
@@ -120,14 +125,19 @@ func GetLogger() *slog.Logger {
 	return logger
 }
 
+func SupressNilLoggerWarn() {
+	warn = false
+	silent = true
+}
+
 func LoggerNotInitialized(logger *slog.Logger) *slog.Logger {
-	// TODO: Add flag for silence tests
-	op := "logger.LoggerInitialized"
-	if logger == nil {
-		logger = slog.New(
-			slog.NewTextHandler(io.Discard, nil),
-		)
-		log.Print(op + " no logger provided")
+	if logger != nil {
+		return logger
 	}
-	return logger
+	mu.Lock()
+	defer mu.Unlock()
+	if !silent && warn {
+		slog.Warn("logger is nil, using discard logger")
+	}
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
