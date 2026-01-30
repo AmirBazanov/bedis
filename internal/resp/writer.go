@@ -43,6 +43,10 @@ func (w *Writer) Value(value *Value) error {
 		return w.integer(value)
 	case SimpleError:
 		return w.simpleError(value)
+	case BulkString:
+		return w.bulkString(value)
+	case Array:
+		return w.array(value)
 	default:
 		return ErrUnknownType
 	}
@@ -76,6 +80,39 @@ func (w *Writer) simpleError(data *Value) error {
 	buf.Write(CRLF)
 	b, err := w.writer.Write(buf.Bytes())
 	return w.handleErrOnWrite(err, b, "simpleError", op)
+}
+
+func (w *Writer) bulkString(data *Value) error {
+	op := "writer.bulkString"
+	var buf bytes.Buffer
+	buf.WriteByte(byte(data.Type))
+	buf.WriteString(strconv.Itoa(len(data.Bytes)))
+	buf.Write(CRLF)
+	buf.Write(data.Bytes)
+	buf.Write(CRLF)
+	b, err := w.writer.Write(buf.Bytes())
+	return w.handleErrOnWrite(err, b, "bulkString", op)
+}
+
+func (w *Writer) array(data *Value) error {
+	op := "writer.array"
+	var buf bytes.Buffer
+	buf.WriteByte(byte(data.Type))
+	buf.WriteString(strconv.Itoa(len(data.Array)))
+	buf.Write(CRLF)
+	_, err := w.writer.Write(buf.Bytes())
+	if err != nil {
+		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
+		return err
+	}
+	for i := range len(data.Array) {
+		err = w.Value(data.Array[i])
+		if err != nil {
+			w.logger.Error(op, slog.Any("in array err", err))
+			return err
+		}
+	}
+	return nil
 }
 
 func (w *Writer) handleErrOnWrite(err error, b int, typ string, op string) error {
