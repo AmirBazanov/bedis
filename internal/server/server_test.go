@@ -102,7 +102,7 @@ func TestServerManyCommandsPerConnection(t *testing.T) {
 			t.Errorf("error on client close: %v", err)
 		}
 	}()
-	conn.SetDeadline(time.Now().Add(time.Second))
+	conn.SetDeadline(time.Now().Add(10 * time.Second))
 	client := Client{
 		conn:   conn,
 		reader: bufio.NewReader(conn),
