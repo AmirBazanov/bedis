@@ -1,12 +1,11 @@
 package resp
 
 import (
+	"bedis/pkg/logger"
 	"bufio"
 	"bytes"
 	"os"
 	"testing"
-
-	"bedis/pkg/logger"
 )
 
 func TestMain(m *testing.M) {
