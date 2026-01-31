@@ -66,7 +66,7 @@ func (w *Writer) integer(data *Value) error {
 	op := "writer.Integer"
 	var buf bytes.Buffer
 	buf.WriteByte(byte(data.Type))
-	buf.WriteString(strconv.Itoa(int(data.Integer)))
+	buf.WriteString(strconv.FormatInt(data.Integer, 10))
 	buf.Write(CRLF)
 	b, err := w.writer.Write(buf.Bytes())
 	return w.handleErrOnWrite(err, b, "interger", op)
@@ -86,7 +86,9 @@ func (w *Writer) bulkString(data *Value) error {
 	op := "writer.bulkString"
 	var buf bytes.Buffer
 	buf.WriteByte(byte(data.Type))
-	buf.WriteString(strconv.Itoa(len(data.Bytes)))
+	if data.Bytes != nil {
+		buf.WriteString(strconv.Itoa(len(data.Bytes)))
+	}
 	buf.Write(CRLF)
 	buf.Write(data.Bytes)
 	buf.Write(CRLF)
@@ -105,7 +107,7 @@ func (w *Writer) array(data *Value) error {
 		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
 		return err
 	}
-	for i := range len(data.Array) {
+	for i := range data.Array {
 		err = w.Value(data.Array[i])
 		if err != nil {
 			w.logger.Error(op, slog.Any("in array err", err))
@@ -124,4 +126,8 @@ func (w *Writer) handleErrOnWrite(err error, b int, typ string, op string) error
 
 	w.logger.Info(op, slog.Int(typ+" write size:", b))
 	return nil
+}
+
+func (w *Writer) Flush() error {
+	return w.writer.Flush()
 }
