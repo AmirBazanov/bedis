@@ -33,7 +33,6 @@ func New(address string, handler *handler.Handler, logger *slog.Logger) *Server 
 	quit := make(chan interface{})
 
 	return &Server{address: address, handler: handler, logger: logger, quit: quit}
-
 }
 
 func (s *Server) Start() error {
@@ -85,7 +84,10 @@ func (s *Server) handleConn(conn net.Conn) {
 		resp, err := s.handler.Process(line)
 		if err != nil {
 			s.logger.Error(op, "Error processing:", err.Error())
-
+			_, err := conn.Write([]byte(err.Error() + "\n"))
+			if err != nil {
+				s.logger.Error(op, "unable to write in conn", err)
+			}
 		} else {
 			s.logger.Info(op, conn.RemoteAddr().String(), resp)
 			_, err := conn.Write([]byte(resp))
