@@ -1,0 +1,24 @@
+name: Go
+
+on:
+  push:
+    branches: [ "resp-writer" ]
+  pull_request:
+    branches: [ "resp-writer" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+    - name: Run
+      run: go run ./cmd/bedis/main.go --config=./configs/config.yaml &
+      shell: bash
+    - name: Test Server
+      run: go test ./internal/server -v
