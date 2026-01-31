@@ -1,14 +1,13 @@
 package server
 
 import (
+	"bedis/internal/handler"
+	"bedis/internal/storage"
 	"bufio"
 	"net"
 	"strings"
 	"testing"
 	"time"
-
-	"bedis/internal/handler"
-	"bedis/internal/storage"
 
 	"github.com/brianvoe/gofakeit/v7"
 )
@@ -146,6 +145,7 @@ func TestUnknownCommand(t *testing.T) {
 		reader: bufio.NewReader(conn),
 	}
 	command := gofakeit.Noun() + "\n"
+	t.Log(command)
 	resp, err := request(t, command, &client)
 	if err != nil {
 		t.Fatalf("request failed: %s", err)
