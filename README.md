@@ -1,3 +1,7 @@
+[![Test Resp Writer Reader](https://github.com/AmirBazanov/bedis/actions/workflows/go_unit_read_write_resp_fuzz.yml/badge.svg)](https://github.com/AmirBazanov/bedis/actions/workflows/go_unit_read_write_resp_fuzz.yml)
+[![Test Server](https://github.com/AmirBazanov/bedis/actions/workflows/go_test_server.yml/badge.svg)](https://github.com/AmirBazanov/bedis/actions/workflows/go_test_server.yml)
+[![Test Storage](https://github.com/AmirBazanov/bedis/actions/workflows/go_unit_storage.yml/badge.svg)](https://github.com/AmirBazanov/bedis/actions/workflows/go_unit_storage.yml)
+
 # Mini Redis
 
 Минималистичная реализация Redis на Go, предназначенная для обучения и экспериментов с базами данных в памяти.
