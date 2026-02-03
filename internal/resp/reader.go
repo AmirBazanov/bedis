@@ -2,11 +2,11 @@ package resp
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"io"
 	"log/slog"
 	"strconv"
-	"strings"
 
 	l "bedis/pkg/logger"
 )
@@ -34,7 +34,8 @@ func NewReader(reader io.Reader, logger *slog.Logger) *Reader {
 
 func (r *Reader) Value() (*Value, error) {
 	op := "reader.ReadValue"
-	v, err := r.reader.ReadString('\n')
+	// TODO: Fix reading only firstBytes
+	v, _, err := r.reader.ReadLine()
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return nil, err
@@ -98,18 +99,18 @@ func (r *Reader) bulkString(size int) (*Value, error) {
 	return &Value{Type: BulkString, Bytes: buf}, nil
 }
 
-func (r *Reader) integer(data string) (*Value, error) {
+func (r *Reader) integer(data []byte) (*Value, error) {
 	op := "reader.Integer"
 	if len(data) < 3 {
 		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
 		return nil, ErrInvalidSize
 	}
-	if data[len(data)-2:] != "\r\n" {
+	if bytes.Equal(data[len(data)-2:], []byte{'\r', '\n'}) {
 		r.logger.Error(op, slog.Any("error", ErrInvalidCrlf))
 		return nil, ErrInvalidCrlf
 	}
 	var intVal int64
-	intVal, err := strconv.ParseInt(data[1:len(data)-2], 10, 64)
+	intVal, err := strconv.ParseInt(string(data[1:len(data)-2]), 10, 64)
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return nil, err
@@ -137,20 +138,20 @@ func (r *Reader) array(size int) (*Value, error) {
 	return &Value{Type: Array, Array: values}, nil
 }
 
-func (r *Reader) simpleString(data string) (*Value, error) {
+func (r *Reader) simpleString(data []byte) (*Value, error) {
 	op := "reader.SimpleString"
 	if len(data) < 3 {
 		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
 		return nil, ErrInvalidSize
 	}
-	if data[len(data)-2:] != "\r\n" {
+	if bytes.Equal(data[len(data)-2:], []byte{'\r', '\n'}) {
 		r.logger.Error(op, slog.Any("error", ErrInvalidCrlf))
 		return nil, ErrInvalidCrlf
 	}
 	return &Value{Type: SimpleString, Bytes: []byte(data[1 : len(data)-2])}, nil
 }
 
-func (r *Reader) simpleError(data string) (*Value, error) {
+func (r *Reader) simpleError(data []byte) (*Value, error) {
 	op := "reader.SimpleError"
 	simpleStringValue, err := r.simpleString(data)
 	if err != nil {
@@ -160,10 +161,10 @@ func (r *Reader) simpleError(data string) (*Value, error) {
 	return &Value{Type: SimpleError, Bytes: simpleStringValue.Bytes}, nil
 }
 
-// TODO: Add other types
-func (r *Reader) parseSize(sb string) (int, error) {
+// TODO: Add other
+func (r *Reader) parseSize(sb []byte) (int, error) {
 	op := "reader.parseSize"
-	if len(sb) < 3 || !strings.HasSuffix(sb, "\r\n") {
+	if len(sb) < 3 {
 		return 0, ErrInvalidSize
 	}
 
@@ -177,7 +178,7 @@ func (r *Reader) parseSize(sb string) (int, error) {
 		r.logger.Error(op, slog.String("error", "size overflow"))
 		return 0, ErrInvalidSize
 	}
-	if size < 0 {
+	if size < -1 {
 
 		r.logger.Error(op, slog.String("error", "size is negative"))
 		return 0, ErrInvalidSize
