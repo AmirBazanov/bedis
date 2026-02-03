@@ -2,13 +2,13 @@ package resp
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"io"
 	"log/slog"
 	"strconv"
 
 	l "bedis/pkg/logger"
+	ws "bedis/pkg/writersticky"
 )
 
 var (
@@ -20,19 +20,22 @@ var (
 type Writer struct {
 	writer *bufio.Writer
 	logger *slog.Logger
+	sw     *ws.WriterSticky
 }
 
 func NewWriter(writer io.Writer, logger *slog.Logger) *Writer {
 	logger = l.LoggerNotInitialized(logger)
+	bioWriter := bufio.NewWriter(writer)
 	return &Writer{
 		logger: logger,
-		writer: bufio.NewWriter(writer),
+		writer: bioWriter,
+		sw:     &ws.WriterSticky{W: bioWriter, Err: nil},
 	}
 }
 
-// TODO: Maybe move buf to main Value func?
 func (w *Writer) Value(value *Value) error {
 	op := "writer.WriterValue"
+	w.sw.Err = nil
 	if value == nil {
 		w.logger.Error(op, slog.Any("ERROR:", ErrNilValue))
 		return ErrNilValue
@@ -55,61 +58,62 @@ func (w *Writer) Value(value *Value) error {
 
 func (w *Writer) simpleString(data *Value) error {
 	op := "writer.SimpleString"
-	var buf bytes.Buffer
-	buf.WriteByte(byte(data.Type))
-	buf.Write(data.Bytes)
-	buf.Write(CRLF)
-	b, err := w.writer.Write(buf.Bytes())
-	return w.handleErrOnWrite(err, b, "simpleString", op)
+	w.sw.WriteByte(byte(data.Type))
+	w.sw.Write(data.Bytes)
+	w.sw.Write(CRLF)
+	return w.handleErrOnWrite(w.sw.Err, "SimpleString", op)
 }
 
 func (w *Writer) integer(data *Value) error {
 	op := "writer.Integer"
-	var buf bytes.Buffer
-	buf.WriteByte(byte(data.Type))
-	buf.WriteString(strconv.FormatInt(data.Integer, 10))
-	buf.Write(CRLF)
-	b, err := w.writer.Write(buf.Bytes())
-	return w.handleErrOnWrite(err, b, "interger", op)
+	w.sw.WriteByte(byte(data.Type))
+	w.sw.WriteString(strconv.FormatInt(data.Integer, 10))
+	w.sw.Write(CRLF)
+	return w.handleErrOnWrite(w.sw.Err, "integer", op)
 }
 
 func (w *Writer) simpleError(data *Value) error {
 	op := "writer.simpleError"
-	var buf bytes.Buffer
-	buf.WriteByte(byte(data.Type))
-	buf.Write(data.Bytes)
-	buf.Write(CRLF)
-	b, err := w.writer.Write(buf.Bytes())
-	return w.handleErrOnWrite(err, b, "simpleError", op)
+
+	w.sw.WriteByte(byte(data.Type))
+	w.sw.Write(data.Bytes)
+	w.sw.Write(CRLF)
+	return w.handleErrOnWrite(w.sw.Err, "simpleError", op)
 }
 
 func (w *Writer) bulkString(data *Value) error {
 	op := "writer.bulkString"
-	var buf bytes.Buffer
-	buf.WriteByte(byte(data.Type))
-	if data.Bytes != nil {
-		buf.WriteString(strconv.Itoa(len(data.Bytes)))
+
+	w.sw.WriteByte(byte(data.Type))
+	if data.Bytes == nil {
+		w.sw.WriteString("-1")
+		w.sw.Write(CRLF)
+		return w.handleErrOnWrite(w.sw.Err, "bulkString", op)
 	}
-	buf.Write(CRLF)
-	buf.Write(data.Bytes)
-	buf.Write(CRLF)
-	b, err := w.writer.Write(buf.Bytes())
-	return w.handleErrOnWrite(err, b, "bulkString", op)
+	w.sw.WriteString(strconv.Itoa(len(data.Bytes)))
+	w.sw.Write(CRLF)
+	w.sw.Write(data.Bytes)
+	w.sw.Write(CRLF)
+	return w.handleErrOnWrite(w.sw.Err, "bulkString", op)
 }
 
 func (w *Writer) array(data *Value) error {
 	op := "writer.array"
-	var buf bytes.Buffer
-	buf.WriteByte(byte(data.Type))
-	buf.WriteString(strconv.Itoa(len(data.Array)))
-	buf.Write(CRLF)
-	_, err := w.writer.Write(buf.Bytes())
-	if err != nil {
-		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
-		return err
+
+	w.sw.WriteByte(byte(data.Type))
+	if data.Array == nil {
+		w.sw.WriteString("-1")
+		w.sw.Write(CRLF)
+		return w.handleErrOnWrite(w.sw.Err, "array", op)
+	}
+	w.sw.WriteString(strconv.Itoa(len(data.Array)))
+	w.sw.Write(CRLF)
+	if w.sw.Err != nil {
+		w.logger.Error(op, slog.Any(ErrToWrite.Error(), w.sw.Err))
+		return w.sw.Err
 	}
 	for i := range data.Array {
-		err = w.Value(data.Array[i])
+		err := w.Value(data.Array[i])
 		if err != nil {
 			w.logger.Error(op, slog.Any("in array err", err))
 			return err
@@ -118,14 +122,13 @@ func (w *Writer) array(data *Value) error {
 	return nil
 }
 
-func (w *Writer) handleErrOnWrite(err error, b int, typ string, op string) error {
+func (w *Writer) handleErrOnWrite(err error, typ string, op string) error {
 	if err != nil {
 
 		w.logger.Error(op, slog.Any(ErrToWrite.Error(), err))
 		return err
 	}
 
-	w.logger.Info(op, slog.Int(typ+" write size:", b))
 	return nil
 }
 
