@@ -30,6 +30,7 @@ func NewWriter(writer io.Writer, logger *slog.Logger) *Writer {
 	}
 }
 
+// TODO: Maybe move buf to main Value func?
 func (w *Writer) Value(value *Value) error {
 	op := "writer.WriterValue"
 	if value == nil {
