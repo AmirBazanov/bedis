@@ -2,7 +2,6 @@ package resp
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"io"
 	"log/slog"
@@ -34,11 +33,14 @@ func NewReader(reader io.Reader, logger *slog.Logger) *Reader {
 
 func (r *Reader) Value() (*Value, error) {
 	op := "reader.ReadValue"
-	// TODO: Fix reading only firstBytes
 	v, _, err := r.reader.ReadLine()
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return nil, err
+	}
+	if len(v) == 0 {
+		r.logger.Error(op, slog.Any("error", ErrUnknownType))
+		return nil, ErrUnknownType
 	}
 
 	switch Type(v[0]) {
@@ -101,16 +103,9 @@ func (r *Reader) bulkString(size int) (*Value, error) {
 
 func (r *Reader) integer(data []byte) (*Value, error) {
 	op := "reader.Integer"
-	if len(data) < 3 {
-		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
-		return nil, ErrInvalidSize
-	}
-	if bytes.Equal(data[len(data)-2:], []byte{'\r', '\n'}) {
-		r.logger.Error(op, slog.Any("error", ErrInvalidCrlf))
-		return nil, ErrInvalidCrlf
-	}
+
 	var intVal int64
-	intVal, err := strconv.ParseInt(string(data[1:len(data)-2]), 10, 64)
+	intVal, err := strconv.ParseInt(string(data[1:]), 10, 64)
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return nil, err
@@ -139,16 +134,9 @@ func (r *Reader) array(size int) (*Value, error) {
 }
 
 func (r *Reader) simpleString(data []byte) (*Value, error) {
-	op := "reader.SimpleString"
-	if len(data) < 3 {
-		r.logger.Error(op, slog.Any("error", ErrInvalidSize))
-		return nil, ErrInvalidSize
-	}
-	if bytes.Equal(data[len(data)-2:], []byte{'\r', '\n'}) {
-		r.logger.Error(op, slog.Any("error", ErrInvalidCrlf))
-		return nil, ErrInvalidCrlf
-	}
-	return &Value{Type: SimpleString, Bytes: []byte(data[1 : len(data)-2])}, nil
+	b := make([]byte, len(data)-1)
+	copy(b, data[1:])
+	return &Value{Type: SimpleString, Bytes: b}, nil
 }
 
 func (r *Reader) simpleError(data []byte) (*Value, error) {
@@ -164,11 +152,11 @@ func (r *Reader) simpleError(data []byte) (*Value, error) {
 // TODO: Add other
 func (r *Reader) parseSize(sb []byte) (int, error) {
 	op := "reader.parseSize"
-	if len(sb) < 3 {
+	if len(sb) < 2 {
 		return 0, ErrInvalidSize
 	}
 
-	size, err := strconv.Atoi(string(sb[1 : len(sb)-2]))
+	size, err := strconv.Atoi(string(sb[1:]))
 	if err != nil {
 		r.logger.Error(op, slog.String("error", err.Error()))
 		return 0, ErrInvalidSize
